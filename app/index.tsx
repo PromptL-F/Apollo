@@ -9,7 +9,7 @@ import { useApolloSession } from "@/hooks/use-apollo-session";
 export default function LoginScreen() {
   const router = useRouter();
   const { credentials, loading, demo, connecting, error, connect, enableDemo, clearError } = useApolloSession();
-  const [baseUrl, setBaseUrl] = useState("http://127.0.0.1:8765");
+  const [baseUrl, setBaseUrl] = useState("");
   const [token, setToken] = useState("");
   const [remember, setRemember] = useState(true);
   const [showToken, setShowToken] = useState(false);
@@ -37,7 +37,7 @@ export default function LoginScreen() {
         <ActionButton label={connecting ? "VALIDANDO ENLACE..." : "CONECTAR CON APOLLO"} icon={connecting ? undefined : "arrow-forward-outline"} onPress={() => void handleConnect()} disabled={connecting || !baseUrl.trim() || !token.trim()} />
         <Pressable onPress={() => { void enableDemo().then(() => router.replace("/(tabs)")); }} style={styles.demoButton}><Ionicons name="flask-outline" size={16} color={Apollo.amber} /><Text style={styles.demoText}>ABRIR CONSOLA DE DEMOSTRACIÓN</Text></Pressable>
       </Panel>
-      <View style={styles.footer}><Text style={styles.footerCode}>SYS.AUTH // TOKEN NEVER TRANSMITTED OUTSIDE THE CONFIGURED SERVER</Text><Text style={styles.footerHint}>Para conexión por USB usa el servidor local y `adb reverse tcp:8765 tcp:8765`.</Text></View>
+      <View style={styles.footer}><Text style={styles.footerCode}>SYS.AUTH // TOKEN NEVER TRANSMITTED OUTSIDE THE CONFIGURED SERVER</Text><Text style={styles.footerHint}>En Android usa la IP del equipo Linux, por ejemplo http://192.168.1.20:8765. No uses 127.0.0.1 salvo que hayas ejecutado `adb reverse tcp:8765 tcp:8765`.</Text></View>
     </ScrollView>
   </KeyboardAvoidingView>;
 }

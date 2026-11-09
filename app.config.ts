@@ -104,6 +104,7 @@ const config: ExpoConfig = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    "./plugins/withCleartextTraffic.js",
     "expo-asset",
     "expo-router",
     [
