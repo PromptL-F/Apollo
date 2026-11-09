@@ -8,6 +8,8 @@ import "react-native-reanimated";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { useApolloLock } from "@/hooks/use-apollo-lock";
+import { ApolloLockLoading, ApolloLockScreen } from "@/components/apollo-lock-screen";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -32,6 +34,7 @@ export default function RootLayout() {
 
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
+  const lock = useApolloLock();
 
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
@@ -96,6 +99,7 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 
+  const protectedContent = lock.loading ? <ApolloLockLoading /> : lock.unlocked ? content : <ApolloLockScreen configured={lock.configured} error={lock.error} onSetup={lock.setupPassword} onUnlock={lock.unlock} onClearError={lock.clearError} />;
   const shouldOverrideSafeArea = Platform.OS === "web";
 
   if (shouldOverrideSafeArea) {
@@ -104,7 +108,7 @@ export default function RootLayout() {
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
           <SafeAreaFrameContext.Provider value={frame}>
             <SafeAreaInsetsContext.Provider value={insets}>
-              {content}
+              {protectedContent}
             </SafeAreaInsetsContext.Provider>
           </SafeAreaFrameContext.Provider>
         </SafeAreaProvider>
@@ -114,7 +118,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <SafeAreaProvider initialMetrics={providerInitialMetrics}>{content}</SafeAreaProvider>
+      <SafeAreaProvider initialMetrics={providerInitialMetrics}>{protectedContent}</SafeAreaProvider>
     </ThemeProvider>
   );
 }
