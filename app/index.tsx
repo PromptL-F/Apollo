@@ -23,7 +23,7 @@ export default function LoginScreen() {
 
   if (loading) return <View style={styles.loading}><ActivityIndicator color={Apollo.amber} /><Text style={styles.loadingText}>INICIALIZANDO ENLACE...</Text></View>;
 
-  return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+  return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={0}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.header}><ApolloLogo /><StatusPill label="OFFLINE" tone="red" /></View>
       <View style={styles.hero}><Text style={styles.kicker}>APOLLO // REMOTE CONSOLE</Text><Text style={styles.title}>Establecer enlace</Text><Text style={styles.subtitle}>Conecta con el núcleo APOLLO que se ejecuta en tu equipo Linux. Las credenciales se guardan de forma segura en este dispositivo.</Text></View>
