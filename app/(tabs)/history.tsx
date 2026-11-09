@@ -1,0 +1,23 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Apollo } from "@/constants/apollo-theme";
+import { ApolloLogo, EmptyState, Panel, SectionLabel, StatusPill } from "@/components/apollo-ui";
+import { useApolloSession } from "@/hooks/use-apollo-session";
+import { ApolloHistoryRecord, getHistory } from "@/lib/apollo-api";
+
+function formatDate(value?: string) { if (!value) return "--"; try { return new Date(value).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch { return value; } }
+
+export default function HistoryScreen() {
+  const { credentials, loading } = useApolloSession();
+  const [history, setHistory] = useState<ApolloHistoryRecord[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(async () => { if (!credentials) return; setRefreshing(true); try { setHistory(await getHistory(credentials)); setError(null); } catch (reason) { setError(reason instanceof Error ? reason.message : "No se pudo cargar el historial."); } finally { setRefreshing(false); } }, [credentials]);
+  useEffect(() => { if (!loading && credentials) { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); } }, [credentials, load, loading]);
+  if (loading) return <View style={styles.loading}><ActivityIndicator color={Apollo.amber} /></View>;
+  if (!credentials) return <View style={styles.loading}><Text style={styles.error}>SESIÓN NO DISPONIBLE</Text></View>;
+  return <View style={styles.screen}><View style={styles.header}><ApolloLogo compact /><Text style={styles.headerTitle}>HISTORIAL</Text></View><FlatList data={history} keyExtractor={(item) => String(item.id)} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load()} tintColor={Apollo.amber} />} contentContainerStyle={styles.list} ListHeaderComponent={<View style={styles.intro}><SectionLabel right={<Text style={styles.count}>{history.length.toString().padStart(2, "0")} RECORDS</Text>}>OPERATION LOG</SectionLabel><Text style={styles.description}>Registro de operaciones del núcleo APOLLO, incluido el resultado de autorización y ejecución.</Text>{error && <Text style={styles.error}>{error}</Text>}</View>} ListEmptyComponent={<EmptyState title="NO RECORDS" detail="Todavía no hay operaciones archivadas en APOLLO." icon="file-tray-outline" />} renderItem={({ item }) => <Panel style={styles.card}><View style={styles.cardTop}><View style={styles.cardId}><Ionicons name="terminal-outline" size={16} color={Apollo.amber} /><Text style={styles.id}>#{item.id} · {item.action}</Text></View><StatusPill label={item.result.toUpperCase()} tone={item.result === "error" ? "red" : item.result === "cancelled" ? "amber" : "green"} /></View><Text style={styles.resource} numberOfLines={2}>{item.resource}</Text><View style={styles.meta}><Text style={styles.metaText}>{formatDate(item.timestamp)}</Text><Text style={styles.metaText}>{item.authorization.toUpperCase()}</Text></View>{item.details && <Text style={styles.result} numberOfLines={4}>{item.details}</Text>}</Panel>} /> </View>;
+}
+
+const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: Apollo.background }, loading: { flex: 1, backgroundColor: Apollo.background, alignItems: "center", justifyContent: "center" }, header: { paddingHorizontal: 18, paddingTop: 54, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: Apollo.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, headerTitle: { color: Apollo.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.7 }, list: { padding: 15, paddingBottom: 30, flexGrow: 1 }, intro: { marginBottom: 8 }, count: { color: Apollo.amberDim, fontSize: 10, letterSpacing: 1 }, description: { color: Apollo.muted, fontSize: 12, lineHeight: 18, marginBottom: 10 }, error: { color: Apollo.coral, fontSize: 12, marginBottom: 8 }, card: { marginBottom: 10, padding: 13 }, cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }, cardId: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }, id: { color: Apollo.amber, fontFamily: "monospace", fontSize: 11 }, resource: { color: Apollo.text, fontSize: 13, lineHeight: 19 }, meta: { flexDirection: "row", justifyContent: "space-between", marginTop: 13, paddingTop: 9, borderTopWidth: 1, borderTopColor: Apollo.border }, metaText: { color: Apollo.mutedDark, fontSize: 9, letterSpacing: 1 }, result: { color: Apollo.muted, fontSize: 12, lineHeight: 18, marginTop: 9 }, });

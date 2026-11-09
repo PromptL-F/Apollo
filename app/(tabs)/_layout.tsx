@@ -1,40 +1,12 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
-import { useColors } from "@/hooks/use-colors";
+import { Apollo } from "@/constants/apollo-theme";
 
 export default function TabLayout() {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
-  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
-  const tabBarHeight = 56 + bottomPadding;
-
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarStyle: {
-          paddingTop: 8,
-          paddingBottom: bottomPadding,
-          height: tabBarHeight,
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+  return <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: Apollo.amber, tabBarInactiveTintColor: Apollo.mutedDark, tabBarStyle: { height: Platform.OS === "web" ? 58 : 84, paddingTop: 7, paddingBottom: Platform.OS === "web" ? 7 : 23, backgroundColor: Apollo.panel, borderTopColor: Apollo.border, borderTopWidth: 1 }, tabBarLabelStyle: { fontSize: 9, letterSpacing: 1, fontWeight: "800" } }}>
+    <Tabs.Screen name="index" options={{ title: "CONSOLE", tabBarIcon: ({ color, size }) => <Ionicons name="pulse-outline" color={color} size={size} /> }} />
+    <Tabs.Screen name="history" options={{ title: "HISTORY", tabBarIcon: ({ color, size }) => <Ionicons name="file-tray-outline" color={color} size={size} /> }} />
+    <Tabs.Screen name="settings" options={{ title: "CONFIG", tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} /> }} />
+  </Tabs>;
 }
