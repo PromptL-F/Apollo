@@ -71,7 +71,18 @@ export function useApolloLock() {
     setError(null);
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, nextPassword: string) => {
+    const stored = await readLock();
+    if (!stored) throw new Error("No hay una contraseña local configurada.");
+    if (await hashPassword(currentPassword, stored.salt) !== stored.hash) throw new Error("La contraseña actual no es correcta.");
+    if (nextPassword.length < 6) throw new Error("La nueva contraseña debe tener al menos 6 caracteres.");
+    const salt = bytesToHex(await Crypto.getRandomBytesAsync(16));
+    const hash = await hashPassword(nextPassword, salt);
+    await Promise.all([setValue(HASH_KEY, hash), setValue(SALT_KEY, salt)]);
+    setError(null);
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { loading, configured, unlocked, error, setupPassword, unlock, clearError };
+  return { loading, configured, unlocked, error, setupPassword, unlock, changePassword, clearError };
 }

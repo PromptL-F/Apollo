@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
+import * as Speech from "expo-speech";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -27,6 +29,16 @@ export default function ConsoleScreen() {
   const { credentials, demo, loading } = useApolloSession();
   const { task, events, approval, question, busy, error, start, approve, answer, cancel } = useApolloTask(credentials, demo);
   const [prompt, setPrompt] = useState("");
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceOutput, setVoiceOutput] = useState(false);
+
+  useSpeechRecognitionEvent("start", () => setVoiceListening(true));
+  useSpeechRecognitionEvent("end", () => setVoiceListening(false));
+  useSpeechRecognitionEvent("error", () => setVoiceListening(false));
+  useSpeechRecognitionEvent("result", (event) => {
+    const transcript = event.results?.[0]?.transcript;
+    if (transcript) setPrompt(transcript);
+  });
 
   useEffect(() => { if (!loading && !credentials && !demo) router.replace("/"); }, [credentials, demo, loading, router]);
 
@@ -42,7 +54,21 @@ export default function ConsoleScreen() {
     try { await start(value); } catch { /* el hook muestra el error */ }
   };
 
-  const header = useMemo(() => <View style={styles.header}><ApolloLogo compact /><View style={styles.headerRight}><StatusPill label={statusLabel} tone={statusTone} /><Pressable onPress={() => router.push("/settings")} hitSlop={12}><Ionicons name="settings-outline" size={20} color={Apollo.muted} /></Pressable></View></View>, [router, statusLabel, statusTone]);
+  const toggleVoiceInput = async () => {
+    if (voiceListening) { ExpoSpeechRecognitionModule.stop(); return; }
+    const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!permission.granted) { setVoiceOutput(true); Speech.speak("No se concedió permiso para usar el micrófono.", { language: "es-ES" }); return; }
+    ExpoSpeechRecognitionModule.start({ lang: "es-ES", interimResults: true, continuous: false, addsPunctuation: false });
+  };
+
+  useEffect(() => {
+    if (!voiceOutput || !events.length) return;
+    const event = events[events.length - 1];
+    const text = String(event.texto || event.pregunta || event.resultado || "").trim();
+    if (text) Speech.speak(text, { language: "es-ES", rate: 0.92 });
+  }, [events, voiceOutput]);
+
+  const header = useMemo(() => <View style={styles.header}><ApolloLogo compact /><View style={styles.headerRight}><StatusPill label={statusLabel} tone={statusTone} /><Pressable onPress={() => setVoiceOutput((value) => !value)} hitSlop={12}><Ionicons name={voiceOutput ? "volume-high-outline" : "volume-mute-outline"} size={20} color={voiceOutput ? Apollo.amber : Apollo.muted} /></Pressable><Pressable onPress={() => router.push("/settings")} hitSlop={12}><Ionicons name="settings-outline" size={20} color={Apollo.muted} /></Pressable></View></View>, [router, statusLabel, statusTone, voiceOutput]);
 
   if (loading || (!credentials && !demo)) return <View style={styles.loading}><ActivityIndicator color={Apollo.amber} /><Text style={styles.loadingText}>RECUPERANDO SESIÓN...</Text></View>;
 
@@ -53,7 +79,7 @@ export default function ConsoleScreen() {
     <Modal visible={Boolean(approval)} transparent animationType="fade" onRequestClose={() => void approve(false)}>{approval && <View style={styles.modalBackdrop}><Panel style={styles.modalCard}><View style={styles.alertHeading}><Ionicons name="shield-checkmark-outline" size={19} color={Apollo.coral} /><Text style={styles.alertTitle}>AUTORIZACIÓN REQUERIDA</Text></View><Text style={styles.alertBody}>APOLLO solicita permiso para ejecutar una operación sensible.</Text><View style={styles.commandBox}><Text style={styles.commandText}>{JSON.stringify(approval.operacion, null, 2)}</Text>{approval.vista_previa && <Text style={styles.previewText}>{approval.vista_previa}</Text>}</View><View style={styles.alertActions}><ActionButton label="RECHAZAR" variant="ghost" onPress={() => void approve(false)} /><ActionButton label="APROBAR" onPress={() => void approve(true)} /></View></Panel></View>}</Modal>
     {question && <QuestionPanel question={question} onAnswer={(value) => void answer(value)} />}
     {error && <View style={styles.errorStrip}><Ionicons name="warning-outline" size={16} color={Apollo.coral} /><Text style={styles.errorText}>{error}</Text></View>}
-    <View style={styles.composer}><TextInput value={prompt} onChangeText={setPrompt} onSubmitEditing={() => void submit()} returnKeyType="send" multiline maxLength={4000} placeholder="Escribe una instrucción para APOLLO..." placeholderTextColor={Apollo.mutedDark} style={styles.composerInput} /><Pressable onPress={() => void submit()} disabled={!canSend} style={({ pressed }) => [styles.sendButton, { opacity: !canSend ? 0.35 : pressed ? 0.65 : 1 }]}><Ionicons name="arrow-up" size={20} color={Apollo.ink} /></Pressable>{taskActive && <Pressable onPress={() => void cancel()} style={styles.cancelButton}><Ionicons name="stop" size={16} color={Apollo.coral} /></Pressable>}</View>
+    <View style={styles.composer}><TextInput value={prompt} onChangeText={setPrompt} onSubmitEditing={() => void submit()} returnKeyType="send" multiline maxLength={4000} placeholder="Escribe o dicta una instrucción..." placeholderTextColor={Apollo.mutedDark} style={styles.composerInput} /><Pressable onPress={() => void toggleVoiceInput()} style={[styles.voiceButton, voiceListening && styles.voiceButtonActive]}><Ionicons name={voiceListening ? "mic" : "mic-outline"} size={19} color={voiceListening ? Apollo.coral : Apollo.amber} /></Pressable><Pressable onPress={() => void submit()} disabled={!canSend} style={({ pressed }) => [styles.sendButton, { opacity: !canSend ? 0.35 : pressed ? 0.65 : 1 }]}><Ionicons name="arrow-up" size={20} color={Apollo.ink} /></Pressable>{taskActive && <Pressable onPress={() => void cancel()} style={styles.cancelButton}><Ionicons name="stop" size={16} color={Apollo.coral} /></Pressable>}</View>
   </KeyboardAvoidingView>;
 }
 
@@ -96,5 +122,7 @@ const styles = StyleSheet.create({
   composer: { margin: 12, marginTop: 4, minHeight: 58, borderWidth: 1, borderColor: Apollo.borderBright, borderRadius: 5, backgroundColor: Apollo.panel, flexDirection: "row", alignItems: "flex-end", padding: 8, gap: 8 },
   composerInput: { flex: 1, color: Apollo.text, minHeight: 40, maxHeight: 100, paddingHorizontal: 8, paddingVertical: 8, fontSize: 13 },
   sendButton: { width: 40, height: 40, borderRadius: 3, backgroundColor: Apollo.amber, alignItems: "center", justifyContent: "center" },
+  voiceButton: { width: 40, height: 40, borderWidth: 1, borderColor: Apollo.borderBright, borderRadius: 3, alignItems: "center", justifyContent: "center" },
+  voiceButtonActive: { borderColor: Apollo.coral, backgroundColor: "#251513" },
   cancelButton: { width: 40, height: 40, borderWidth: 1, borderColor: Apollo.coral, borderRadius: 3, alignItems: "center", justifyContent: "center" },
 });

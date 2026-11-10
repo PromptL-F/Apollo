@@ -106,6 +106,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     "./plugins/withCleartextTraffic.js",
+    ["expo-speech-recognition", { microphonePermission: "APOLLO necesita el micrófono para dictar instrucciones.", speechRecognitionPermission: "APOLLO necesita reconocimiento de voz para convertir tus instrucciones en texto." }],
     "expo-asset",
     "expo-router",
     [

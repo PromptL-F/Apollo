@@ -10,6 +10,7 @@ import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { useApolloLock } from "@/hooks/use-apollo-lock";
 import { ApolloLockLoading, ApolloLockScreen } from "@/components/apollo-lock-screen";
+import { ApolloAmbient } from "@/components/apollo-ambient";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -99,7 +100,7 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 
-  const protectedContent = lock.loading ? <ApolloLockLoading /> : lock.unlocked ? content : <ApolloLockScreen configured={lock.configured} error={lock.error} onSetup={lock.setupPassword} onUnlock={lock.unlock} onClearError={lock.clearError} />;
+  const protectedContent = lock.loading ? <ApolloLockLoading /> : lock.unlocked ? <><ApolloAmbient />{content}</> : <ApolloLockScreen configured={lock.configured} error={lock.error} onSetup={lock.setupPassword} onUnlock={lock.unlock} onClearError={lock.clearError} />;
   const shouldOverrideSafeArea = Platform.OS === "web";
 
   if (shouldOverrideSafeArea) {
